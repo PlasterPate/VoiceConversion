@@ -26,27 +26,16 @@ class MainViewModel : ViewModel() {
     val isRecording: LiveData<Boolean>
         get() = _isRecording
 
-//    private val _numbers = MutableLiveData<String>()
-//    val numbers: LiveData<String>
-//    get() = _numbers
-
     fun changeVoice(signal: ShortArray, sampleRate: Int, py: Python){
         val pyf = py.getModule("VoiceConversion")
-        val obj = Single.fromCallable{pyf.callAttr("pitchshift", signal, _pitchShift.value)}
+        val obj = Single.fromCallable{pyf.callAttr("pitch_shifting", signal, _pitchShift.value)}
             .subscribeOn(Schedulers.computation())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({result ->
-//                _numbers.value = "Success"
-                Log.v(LOG_TAG, "DTMF Success")
-//                if (result.toString() == ""){
-//                    _numbers.value = "Nothing detected!"
-//                }else{
-//                    _numbers.value = result.toString()
-//                }
+                Log.v(LOG_TAG, "Successfully shifted pitch")
                 _shiftedSignal.value = result.toJava(ShortArray::class.java)
                 println(_shiftedSignal.value)
             }, {
-//                _numbers.value = "Error"
                 Log.v(LOG_TAG, it.localizedMessage)
                 it.printStackTrace()
             })

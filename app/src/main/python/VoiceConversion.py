@@ -1,70 +1,45 @@
 import numpy as np
-from scipy.io import wavfile as wav
-#import soundfile as sf
+from numpy.fft import fft, ifft
 
 
-def speedx(sound_array, factor):
-    """ Multiplies the sound's speed by some `factor` """
-    indices = np.round( np.arange(0, len(sound_array), factor) )
-    indices = indices[indices < len(sound_array)].astype(int)
-    return sound_array[ indices.astype(int) ]
-
-
-def stretch(sound_array, f, window_size, h):
-    """ Stretches the sound by a factor `f` """
-
+def time_stretching(input_signal, factor, window_size, T):
     phase = np.zeros(window_size)
     hanning_window = np.hanning(window_size)
-    result = np.zeros(int(len(sound_array) /f) + window_size)
+    result = np.zeros(int(len(input_signal) / factor) + window_size)
 
-    for i in np.arange(0, len(sound_array)-(window_size+h), h*f):
+    indexes = np.arange(0, len(input_signal) - (window_size + T), T * factor)
+    for i in indexes:
+        first_sub = [input_signal[j] for j in range(int(i), int(i) + window_size)]
+        second_sub = [input_signal[j] for j in range(int(i) + T, int(i) + T + window_size)]
 
-        # print(int(i))
-        # print(window_size)
+        first_freqs = fft(hanning_window * first_sub)
+        second_freqs = fft(hanning_window * second_sub)
 
-        # two potentially overlapping subarrays
-        a1 = [sound_array[j] for j in range(int(i), int(i) + window_size)]
-        a2 = [sound_array[j] for j in range(int(i) + h, int(i) + window_size + h)]
+        new_phase = (phase + np.angle(np.divide(second_freqs, first_freqs))) % 2 * np.pi
+        second_sub_rephased = ifft(np.abs(second_freqs) * np.exp(1j * new_phase))
 
-        # resynchronize the second array on the first
-        s1 =  np.fft.fft(hanning_window * a1)
-        s2 =  np.fft.fft(hanning_window * a2)
-        phase = (phase + np.angle(s2/s1)) % 2*np.pi
-        a2_rephased = np.fft.ifft(np.abs(s2)*np.exp(1j*phase))
+        k = int(i / factor)
 
-        # add to result
-        i2 = int(i/f)
-        result[i2: i2 + window_size] = [result[j] for j in range(int(i2), int(i2) + window_size)] + hanning_window*a2_rephased
+        result[k: k + window_size] = [result[j] for j in range(int(k), int(k) + window_size)] + second_sub_rephased
 
-    result = ((2**(16-4)) * result/result.max()) # normalize (16bit)
+    result = (pow(2, 12) * result / np.max(result))
 
     return result.astype('int16')
 
-def pitchshift(snd_array, n, window_size=2**13, h=2**11):
-    """ Changes the pitch of a sound by ``n`` semitones. """
-    #snd_array = snd_array[:, 0]
-    factor = 2**(1.0 * n / 12.0)
-    stretched = stretch(snd_array, 1.0/factor, window_size, h)
-    return speedx(stretched[window_size:], factor)
+
+def resample(input_signal, factor):
+    indexes = np.arange(0, len(input_signal), factor).astype(int)
+    if indexes[-1] == len(input_signal):
+        np.delete(indexes, len(indexes - 1))
+
+    return input_signal[indexes]
 
 
-# sr, sound = wav.read("female_scale.wav")
-# sound = sound[:, 0]
-# shifted_voice = pitchshift(sound, -6)
-# wav.write("out.wav", sr, shifted_voice)
+def pitch_shifting(input_signal, n, window_size=pow(2, 13), T=pow(2, 11)):
+    factor = pow(2, n / 12)
 
-# p = pyaudio.PyAudio()
-#
-# CHUNK = 30000
-# RATE = 44100
-#
-# stream = p.open(format=pyaudio.paInt16, channels=1, rate=RATE, input=True, frames_per_buffer=CHUNK)
-# player = p.open(format=pyaudio.paInt16, channels=1, rate=RATE, output=True, frames_per_buffer=CHUNK)
-#
-# while True:
-#     data = np.fromstring(stream.read(CHUNK), dtype=np.int16)
-#     print(data)
-#     new_res = pitchshift(data, 24)
-#
-#     player.write(new_res, CHUNK)
+    stretched_signal = time_stretching(input_signal, 1.0 / factor, window_size, T)
 
+    output_signal = resample(stretched_signal[window_size:], factor)
+
+    return output_signal
