@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#019615</color>
+    <color name="colorPrimaryDark">#1D5E00</color>
+    <color name="colorAccent">#F53434</color>
+    <color name="record_btn_stopped_color">#D50000</color>
+    <color name="record_btn_recording_color">#028E09</color>
+    <color name="record_btn_stopped_ripple_color">#E40000</color>
+    <color name="record_btn_recording_ripple_color">#64DD17</color>
+    <color name="record_pulse_color">#64DD17</color>
+</resources>

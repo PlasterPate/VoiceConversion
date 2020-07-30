@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Voice Conversion</string>
+    <string name="play">Play</string>
+    <string name="instructions">Record your voice\nChange the pitch\nPlay and enjoy!</string>
+    <string name="how_to_use">How to use?</string>
+</resources>
